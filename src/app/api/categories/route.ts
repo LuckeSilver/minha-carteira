@@ -18,7 +18,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const payload = categorySchema.parse(await request.json());
-    const category = await categoryService.create(payload.name);
+    const category = await categoryService.create(payload);
 
     return NextResponse.json(category, { status: 201 });
   } catch (error) {

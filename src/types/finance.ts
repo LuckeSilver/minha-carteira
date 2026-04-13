@@ -3,6 +3,7 @@ export type TransactionType = "income" | "expense";
 export type CategoryDTO = {
   id: string;
   name: string;
+  icon: string;
   createdAt: string;
 };
 

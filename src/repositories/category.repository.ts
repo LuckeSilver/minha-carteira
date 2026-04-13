@@ -7,9 +7,9 @@ export const categoryRepository = {
     });
   },
 
-  async create(name: string) {
+  async create(data: { name: string; icon: string }) {
     return prisma.category.create({
-      data: { name },
+      data,
     });
   },
 

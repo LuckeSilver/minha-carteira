@@ -15,6 +15,7 @@ datasource db {
 model Category {
   id           String        @id @default(uuid())
   name         String        @unique
+  icon         String        @default("receipt")
   createdAt    DateTime      @default(now())
   transactions Transaction[]
 }

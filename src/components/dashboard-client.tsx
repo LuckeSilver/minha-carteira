@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { ArrowDownRight, ArrowUpRight, PlusCircle, Trash2, Wallet } from "lucide-react";
 
 import type { CategoryDTO, DashboardResponse, TransactionDTO } from "@/types/finance";
+import { CATEGORY_ICON_OPTIONS, DEFAULT_CATEGORY_ICON, getCategoryIcon } from "@/lib/category-icons";
 import { http } from "@/lib/http";
 import { formatCurrency, toDateInputValue } from "@/lib/format";
 import { categorySchema, transactionSchema } from "@/lib/validators";
@@ -99,6 +100,7 @@ export function DashboardClient({ initialData }: Props) {
     resolver: zodResolver(categorySchema),
     defaultValues: {
       name: "",
+      icon: DEFAULT_CATEGORY_ICON,
     },
   });
 
@@ -137,7 +139,7 @@ export function DashboardClient({ initialData }: Props) {
     try {
       await http.post("/categories", values);
       toast.success("Categoria criada");
-      categoryForm.reset({ name: "" });
+      categoryForm.reset({ name: "", icon: DEFAULT_CATEGORY_ICON });
       setIsCategoryDialogOpen(false);
       await refreshData(month);
     } catch {
@@ -201,6 +203,9 @@ export function DashboardClient({ initialData }: Props) {
     color: "#f7f1ff",
   };
 
+  const selectedCategoryIcon = categoryForm.watch("icon");
+  const categoryMap = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
+
   return (
     <div className="min-h-screen bg-background px-3 py-3 pb-24 md:px-6 md:py-8 md:pb-8">
       <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-5 overflow-hidden rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_top,#312354_0%,#231a36_42%,#15111f_100%)] p-4 shadow-[0_30px_80px_rgba(15,8,30,0.28)] md:p-8">
@@ -241,6 +246,35 @@ export function DashboardClient({ initialData }: Props) {
                   {categoryForm.formState.errors.name ? (
                     <p className="text-xs text-destructive">{categoryForm.formState.errors.name.message}</p>
                   ) : null}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Ícone</p>
+                    <div className="grid grid-cols-5 gap-2">
+                      {CATEGORY_ICON_OPTIONS.map((option) => {
+                        const Icon = option.icon;
+                        const isActive = selectedCategoryIcon === option.value;
+
+                        return (
+                          <button
+                            key={option.value}
+                            type="button"
+                            onClick={() => categoryForm.setValue("icon", option.value, { shouldValidate: true })}
+                            className={`flex aspect-square items-center justify-center rounded-xl border transition ${
+                              isActive
+                                ? "border-primary bg-primary/15 text-primary"
+                                : "border-white/8 bg-white/5 text-muted-foreground hover:bg-white/10"
+                            }`}
+                            aria-label={option.label}
+                            title={option.label}
+                          >
+                            <Icon className="size-4" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {categoryForm.formState.errors.icon ? (
+                      <p className="text-xs text-destructive">{categoryForm.formState.errors.icon.message}</p>
+                    ) : null}
+                  </div>
                   <Button type="submit" disabled={categoryForm.formState.isSubmitting} className="w-full">
                     {categoryForm.formState.isSubmitting ? "Salvando..." : "Salvar categoria"}
                   </Button>
@@ -494,7 +528,11 @@ export function DashboardClient({ initialData }: Props) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {transactions.map((transaction) => (
+                        {transactions.map((transaction) => {
+                          const category = categoryMap.get(transaction.categoryId);
+                          const CategoryIcon = getCategoryIcon(category?.icon ?? DEFAULT_CATEGORY_ICON);
+
+                          return (
                           <TableRow key={transaction.id} className="border-white/6">
                             <TableCell className="font-medium">{transaction.title}</TableCell>
                             <TableCell
@@ -506,7 +544,14 @@ export function DashboardClient({ initialData }: Props) {
                             >
                               {formatCurrency(transaction.amount)}
                             </TableCell>
-                            <TableCell className="text-violet-100/70">{transaction.categoryName}</TableCell>
+                            <TableCell className="text-violet-100/70">
+                              <span className="inline-flex items-center gap-2">
+                                <span className="rounded-md bg-white/8 p-1 text-violet-100/85">
+                                  <CategoryIcon className="size-3.5" />
+                                </span>
+                                {transaction.categoryName}
+                              </span>
+                            </TableCell>
                             <TableCell>
                               <Badge
                                 variant={transaction.type === "income" ? "secondary" : "outline"}
@@ -532,7 +577,8 @@ export function DashboardClient({ initialData }: Props) {
                               </Button>
                             </TableCell>
                           </TableRow>
-                        ))}
+                          );
+                        })}
                       </TableBody>
                     </Table>
                   </div>
@@ -551,22 +597,31 @@ export function DashboardClient({ initialData }: Props) {
                 {categories.length === 0 ? (
                   <p className="text-sm text-muted-foreground">Nenhuma categoria cadastrada.</p>
                 ) : (
-                  categories.map((category) => (
+                  categories.map((category) => {
+                    const CategoryIcon = getCategoryIcon(category.icon);
+
+                    return (
                     <div
                       key={category.id}
                       className="flex items-center justify-between rounded-lg border border-white/6 bg-white/4 px-3 py-2.5"
                     >
-                      <div>
-                        <p className="text-sm font-medium">{category.name}</p>
-                        <p className="text-xs text-violet-100/55">
-                          {format(parseISO(category.createdAt), "dd/MM/yyyy", { locale: ptBR })}
-                        </p>
+                      <div className="flex items-center gap-3">
+                        <div className="rounded-lg bg-white/8 p-2 text-violet-100/85">
+                          <CategoryIcon className="size-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium">{category.name}</p>
+                          <p className="text-xs text-violet-100/55">
+                            {format(parseISO(category.createdAt), "dd/MM/yyyy", { locale: ptBR })}
+                          </p>
+                        </div>
                       </div>
                       <Button variant="ghost" size="icon-sm" onClick={() => void onDeleteCategory(category.id)}>
                         <Trash2 className="size-4 text-muted-foreground" />
                       </Button>
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </CardContent>

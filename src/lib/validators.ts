@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CATEGORY_ICON_NAMES } from "@/lib/category-icons";
 
 export const categorySchema = z.object({
   name: z
@@ -6,6 +7,9 @@ export const categorySchema = z.object({
     .min(2, "Informe um nome com pelo menos 2 caracteres")
     .max(40, "Nome muito longo")
     .trim(),
+  icon: z.enum(CATEGORY_ICON_NAMES, {
+    message: "Escolha um icone valido",
+  }),
 });
 
 export const transactionSchema = z.object({
