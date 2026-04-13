@@ -48,7 +48,7 @@ type Props = {
   initialData: DashboardResponse;
 };
 
-const CHART_COLORS = ["#a78bfa", "#34d399", "#fb923c", "#60a5fa", "#f472b6", "#fbbf24"];
+const CHART_COLORS = ["#8b7cff", "#5aa6ff", "#b67cff", "#6f5de7", "#d493ff", "#7b8cff"];
 
 function calculateSummary(transactions: TransactionDTO[]) {
   return transactions.reduce(
@@ -188,34 +188,35 @@ export function DashboardClient({ initialData }: Props) {
     await refreshData(nextMonth);
   }
 
-  const balanceColor = summary.balance >= 0 ? "text-indigo-300" : "text-rose-400";
+  const balanceColor = summary.balance >= 0 ? "text-violet-100" : "text-pink-200";
   const balanceRing =
     summary.balance >= 0
-      ? "bg-indigo-500/10 ring-indigo-500/20"
-      : "bg-rose-500/10 ring-rose-500/20";
+      ? "bg-violet-400/12 ring-violet-300/18"
+      : "bg-pink-400/12 ring-pink-300/18";
 
   const tooltipStyle = {
-    background: "#151922",
-    border: "1px solid rgba(255,255,255,0.08)",
+    background: "#2b2340",
+    border: "1px solid rgba(228, 210, 255, 0.12)",
     borderRadius: "0.5rem",
-    color: "#f1f5f9",
+    color: "#f7f1ff",
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-0">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-8">
+    <div className="min-h-screen bg-background px-3 py-3 pb-24 md:px-6 md:py-8 md:pb-8">
+      <div className="relative mx-auto flex w-full max-w-7xl flex-col gap-5 overflow-hidden rounded-[2rem] border border-white/8 bg-[radial-gradient(circle_at_top,#312354_0%,#231a36_42%,#15111f_100%)] p-4 shadow-[0_30px_80px_rgba(15,8,30,0.28)] md:p-8">
+        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-44 max-w-5xl rounded-full bg-violet-400/10 blur-3xl" />
 
         {/* ── Header ── */}
-        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <header className="relative z-10 flex flex-col gap-4 rounded-[1.75rem] border border-white/8 bg-white/4 px-4 py-4 backdrop-blur-sm md:flex-row md:items-center md:justify-between md:px-6">
           <div className="flex items-center gap-3">
-            <div className="rounded-xl bg-primary/15 p-2.5">
+            <div className="rounded-xl bg-white/10 p-2.5 ring-1 ring-white/10">
               <Wallet className="size-5 text-primary" />
             </div>
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-widest text-muted-foreground">
+              <p className="text-[11px] font-medium uppercase tracking-[0.24em] text-violet-100/55">
                 Controle financeiro pessoal
               </p>
-              <h1 className="text-xl font-semibold tracking-tight md:text-2xl">Minha Carteira</h1>
+              <h1 className="text-xl font-semibold tracking-tight text-white md:text-2xl">Minha Carteira</h1>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -223,11 +224,11 @@ export function DashboardClient({ initialData }: Props) {
               type="month"
               value={month}
               onChange={(event) => void onMonthChange(event.target.value)}
-              className="w-full max-w-[10.5rem] bg-card"
+              className="w-full max-w-42 border-white/10 bg-white/8 text-white"
             />
             {/* Desktop-only action buttons */}
             <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-              <DialogTrigger render={<Button variant="outline" className="hidden md:inline-flex" />}>
+              <DialogTrigger render={<Button variant="outline" className="hidden border-white/10 bg-white/8 text-white hover:bg-white/12 md:inline-flex" />}>
                 <PlusCircle className="size-4" /> Categoria
               </DialogTrigger>
               <DialogContent>
@@ -248,7 +249,7 @@ export function DashboardClient({ initialData }: Props) {
             </Dialog>
 
             <Dialog open={isTransactionDialogOpen} onOpenChange={setIsTransactionDialogOpen}>
-              <DialogTrigger render={<Button className="hidden md:inline-flex" />}>
+              <DialogTrigger render={<Button className="hidden bg-white text-slate-900 hover:bg-white/90 md:inline-flex" />}>
                 <PlusCircle className="size-4" /> Transação
               </DialogTrigger>
               <DialogContent className="sm:max-w-md">
@@ -272,14 +273,14 @@ export function DashboardClient({ initialData }: Props) {
                     <p className="text-xs text-destructive">{transactionForm.formState.errors.amount.message}</p>
                   ) : null}
                   <select
-                    className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+                    className="h-9 rounded-lg border border-white/10 bg-white/8 px-3 text-sm text-white"
                     {...transactionForm.register("type")}
                   >
                     <option value="income">Entrada</option>
                     <option value="expense">Saída</option>
                   </select>
                   <select
-                    className="h-9 rounded-lg border border-input bg-card px-3 text-sm text-foreground"
+                    className="h-9 rounded-lg border border-white/10 bg-white/8 px-3 text-sm text-white"
                     {...transactionForm.register("categoryId")}
                   >
                     <option value="">Selecione uma categoria</option>
@@ -306,50 +307,50 @@ export function DashboardClient({ initialData }: Props) {
         </header>
 
         {/* ── Summary Cards ── */}
-        <section className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-          <Card className="border-0 bg-emerald-500/10 ring-1 ring-emerald-500/20">
+        <section className="relative z-10 grid grid-cols-2 gap-3 lg:grid-cols-3">
+          <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(122,93,182,0.34),rgba(91,67,142,0.18))] shadow-none">
             <CardHeader className="pb-2 pt-4">
               <div className="mb-1 flex items-center justify-between">
-                <CardDescription className="text-xs font-medium uppercase tracking-wider text-emerald-400/80">
+                <CardDescription className="text-xs font-medium uppercase tracking-wider text-violet-100/65">
                   Entradas
                 </CardDescription>
-                <div className="rounded-full bg-emerald-500/20 p-1">
-                  <ArrowUpRight className="size-3.5 text-emerald-400" />
+                <div className="rounded-full bg-white/14 p-1">
+                  <ArrowUpRight className="size-3.5 text-violet-100" />
                 </div>
               </div>
               {isLoading ? (
                 <Skeleton className="h-6 w-28" />
               ) : (
-                <CardTitle className="text-lg font-semibold text-emerald-300 md:text-xl">
+                <CardTitle className="text-lg font-semibold text-white md:text-xl">
                   {formatCurrency(summary.totalIncome)}
                 </CardTitle>
               )}
             </CardHeader>
           </Card>
 
-          <Card className="border-0 bg-rose-500/10 ring-1 ring-rose-500/20">
+          <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(122,93,182,0.34),rgba(91,67,142,0.18))] shadow-none">
             <CardHeader className="pb-2 pt-4">
               <div className="mb-1 flex items-center justify-between">
-                <CardDescription className="text-xs font-medium uppercase tracking-wider text-rose-400/80">
+                <CardDescription className="text-xs font-medium uppercase tracking-wider text-violet-100/65">
                   Saídas
                 </CardDescription>
-                <div className="rounded-full bg-rose-500/20 p-1">
-                  <ArrowDownRight className="size-3.5 text-rose-400" />
+                <div className="rounded-full bg-white/14 p-1">
+                  <ArrowDownRight className="size-3.5 text-violet-100" />
                 </div>
               </div>
               {isLoading ? (
                 <Skeleton className="h-6 w-28" />
               ) : (
-                <CardTitle className="text-lg font-semibold text-rose-300 md:text-xl">
+                <CardTitle className="text-lg font-semibold text-white md:text-xl">
                   {formatCurrency(summary.totalExpense)}
                 </CardTitle>
               )}
             </CardHeader>
           </Card>
 
-          <Card className={`col-span-2 border-0 ring-1 lg:col-span-1 ${balanceRing}`}>
+          <Card className={`col-span-2 border-white/8 shadow-none lg:col-span-1 ${balanceRing}`}>
             <CardHeader className="pb-2 pt-4">
-              <CardDescription className="mb-1 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              <CardDescription className="mb-1 text-xs font-medium uppercase tracking-wider text-violet-100/65">
                 Saldo
               </CardDescription>
               {isLoading ? (
@@ -364,10 +365,10 @@ export function DashboardClient({ initialData }: Props) {
         </section>
 
         {/* ── Charts ── */}
-        <section className="grid gap-4 lg:grid-cols-2">
-          <Card className="border-border/50">
+        <section className="relative z-10 grid gap-4 lg:grid-cols-2">
+          <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(42,31,69,0.88),rgba(28,22,43,0.92))] shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Gastos por categoria</CardTitle>
+              <CardTitle className="text-base text-white">Gastos por categoria</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
               {isLoading ? (
@@ -391,9 +392,9 @@ export function DashboardClient({ initialData }: Props) {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
+          <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(42,31,69,0.88),rgba(28,22,43,0.92))] shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Entradas vs Saídas</CardTitle>
+              <CardTitle className="text-base text-white">Entradas vs Saídas</CardTitle>
             </CardHeader>
             <CardContent className="h-72">
               {isLoading ? (
@@ -401,12 +402,12 @@ export function DashboardClient({ initialData }: Props) {
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={incomeVsExpenseData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
-                    <XAxis dataKey="name" tick={{ fill: "#6b7280", fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: "#6b7280", fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(218,201,255,0.09)" />
+                    <XAxis dataKey="name" tick={{ fill: "#c5b7e6", fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: "#c5b7e6", fontSize: 12 }} axisLine={false} tickLine={false} />
                     <Tooltip formatter={(value) => formatCurrency(Number(value))} contentStyle={tooltipStyle} />
-                    <Legend wrapperStyle={{ color: "#6b7280", fontSize: 12 }} />
-                    <Bar dataKey="value" fill="#818cf8" radius={[6, 6, 0, 0]} />
+                    <Legend wrapperStyle={{ color: "#d9cef5", fontSize: 12 }} />
+                    <Bar dataKey="value" fill="#8d7dff" radius={[6, 6, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -415,11 +416,11 @@ export function DashboardClient({ initialData }: Props) {
         </section>
 
         {/* ── Transactions + Categories ── */}
-        <section className="grid gap-4 lg:grid-cols-[1fr_300px]">
-          <Card className="border-border/50">
+        <section className="relative z-10 grid gap-4 lg:grid-cols-[1fr_300px]">
+          <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(24,18,37,0.92),rgba(18,14,28,0.94))] shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Transações</CardTitle>
-              <CardDescription>Lista atualizada por mês.</CardDescription>
+              <CardTitle className="text-base text-white">Transações</CardTitle>
+              <CardDescription className="text-violet-100/55">Lista atualizada por mês.</CardDescription>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -437,22 +438,22 @@ export function DashboardClient({ initialData }: Props) {
                     {transactions.map((transaction) => (
                       <div
                         key={transaction.id}
-                        className={`flex items-center justify-between rounded-xl p-3 ring-1 ${
+                        className={`flex items-center justify-between rounded-xl border border-white/6 p-3 ${
                           transaction.type === "income"
-                            ? "bg-emerald-500/5 ring-emerald-500/15"
-                            : "bg-rose-500/5 ring-rose-500/15"
+                            ? "bg-white/6"
+                            : "bg-white/4"
                         }`}
                       >
                         <div className="flex min-w-0 items-center gap-3">
                           <div
                             className={`shrink-0 rounded-full p-1.5 ${
-                              transaction.type === "income" ? "bg-emerald-500/20" : "bg-rose-500/20"
+                              transaction.type === "income" ? "bg-violet-400/16" : "bg-pink-300/12"
                             }`}
                           >
                             {transaction.type === "income" ? (
-                              <ArrowUpRight className="size-3.5 text-emerald-400" />
+                              <ArrowUpRight className="size-3.5 text-violet-100" />
                             ) : (
-                              <ArrowDownRight className="size-3.5 text-rose-400" />
+                              <ArrowDownRight className="size-3.5 text-pink-100" />
                             )}
                           </div>
                           <div className="min-w-0">
@@ -494,7 +495,7 @@ export function DashboardClient({ initialData }: Props) {
                       </TableHeader>
                       <TableBody>
                         {transactions.map((transaction) => (
-                          <TableRow key={transaction.id} className="border-border/50">
+                          <TableRow key={transaction.id} className="border-white/6">
                             <TableCell className="font-medium">{transaction.title}</TableCell>
                             <TableCell
                               className={
@@ -505,7 +506,7 @@ export function DashboardClient({ initialData }: Props) {
                             >
                               {formatCurrency(transaction.amount)}
                             </TableCell>
-                            <TableCell className="text-muted-foreground">{transaction.categoryName}</TableCell>
+                            <TableCell className="text-violet-100/70">{transaction.categoryName}</TableCell>
                             <TableCell>
                               <Badge
                                 variant={transaction.type === "income" ? "secondary" : "outline"}
@@ -518,7 +519,7 @@ export function DashboardClient({ initialData }: Props) {
                                 {transaction.type === "income" ? "Entrada" : "Saída"}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-muted-foreground">
+                            <TableCell className="text-violet-100/70">
                               {format(parseISO(transaction.createdAt), "dd/MM/yyyy", { locale: ptBR })}
                             </TableCell>
                             <TableCell className="text-right">
@@ -540,10 +541,10 @@ export function DashboardClient({ initialData }: Props) {
             </CardContent>
           </Card>
 
-          <Card className="border-border/50">
+          <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(24,18,37,0.92),rgba(18,14,28,0.94))] shadow-none">
             <CardHeader>
-              <CardTitle className="text-base">Categorias</CardTitle>
-              <CardDescription>Gerencie suas categorias.</CardDescription>
+              <CardTitle className="text-base text-white">Categorias</CardTitle>
+              <CardDescription className="text-violet-100/55">Gerencie suas categorias.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -553,11 +554,11 @@ export function DashboardClient({ initialData }: Props) {
                   categories.map((category) => (
                     <div
                       key={category.id}
-                      className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5"
+                      className="flex items-center justify-between rounded-lg border border-white/6 bg-white/4 px-3 py-2.5"
                     >
                       <div>
                         <p className="text-sm font-medium">{category.name}</p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-violet-100/55">
                           {format(parseISO(category.createdAt), "dd/MM/yyyy", { locale: ptBR })}
                         </p>
                       </div>
@@ -574,15 +575,15 @@ export function DashboardClient({ initialData }: Props) {
       </div>
 
       {/* ── Mobile bottom action bar ── */}
-      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-3 border-t border-border/60 bg-card/95 p-4 backdrop-blur-md md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 flex gap-3 border-t border-white/8 bg-[#1d1629]/92 p-4 backdrop-blur-md md:hidden">
         <Button
           variant="outline"
-          className="flex-1 border-border/60"
+          className="flex-1 border-white/10 bg-white/6 text-white hover:bg-white/10"
           onClick={() => setIsCategoryDialogOpen(true)}
         >
           <PlusCircle className="size-4" /> Categoria
         </Button>
-        <Button className="flex-1" onClick={() => setIsTransactionDialogOpen(true)}>
+        <Button className="flex-1 bg-white text-slate-900 hover:bg-white/90" onClick={() => setIsTransactionDialogOpen(true)}>
           <PlusCircle className="size-4" /> Transação
         </Button>
       </div>
