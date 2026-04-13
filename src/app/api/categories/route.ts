@@ -4,9 +4,15 @@ import { ZodError } from "zod";
 import { categoryService } from "@/services/category.service";
 import { categorySchema } from "@/lib/validators";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const categories = await categoryService.list();
-  return NextResponse.json(categories);
+  return NextResponse.json(categories, {
+    headers: {
+      "Cache-Control": "no-store",
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -19,6 +25,8 @@ export async function POST(request: Request) {
     if (error instanceof ZodError) {
       return NextResponse.json({ message: error.issues[0]?.message ?? "Dados invalidos" }, { status: 400 });
     }
+
+    console.error("Falha ao criar categoria", error);
 
     return NextResponse.json({ message: "Nao foi possivel criar categoria" }, { status: 500 });
   }

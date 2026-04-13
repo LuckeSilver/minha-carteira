@@ -12,7 +12,8 @@ export async function getDashboardData(month?: string) {
 
   try {
     return await transactionService.dashboard(selectedMonth);
-  } catch {
+  } catch (error) {
+    console.error("Falha ao carregar dados do dashboard", error);
     return {
       summary: {
         totalIncome: 0,
