@@ -13,6 +13,13 @@ export const categoryRepository = {
     });
   },
 
+  async update(id: string, data: { name: string; icon: string }) {
+    return prisma.category.update({
+      where: { id },
+      data,
+    });
+  },
+
   async delete(id: string) {
     return prisma.category.delete({
       where: { id },

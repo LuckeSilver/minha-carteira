@@ -21,6 +21,11 @@ export const categoryService = {
     return toCategoryDTO(category);
   },
 
+  async update(id: string, data: { name: string; icon: string }): Promise<CategoryDTO> {
+    const category = await categoryRepository.update(id, data);
+    return toCategoryDTO(category);
+  },
+
   async delete(id: string): Promise<void> {
     await categoryRepository.delete(id);
   },

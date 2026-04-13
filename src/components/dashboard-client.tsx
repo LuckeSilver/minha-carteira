@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { z } from "zod";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -20,7 +20,7 @@ import {
   Legend,
 } from "recharts";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, PlusCircle, Trash2, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, PencilLine, PlusCircle, Trash2, Wallet } from "lucide-react";
 
 import type { CategoryDTO, DashboardResponse, TransactionDTO } from "@/types/finance";
 import { CATEGORY_ICON_OPTIONS, DEFAULT_CATEGORY_ICON, getCategoryIcon } from "@/lib/category-icons";
@@ -30,6 +30,13 @@ import { categorySchema, transactionSchema } from "@/lib/validators";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -50,6 +57,46 @@ type Props = {
 };
 
 const CHART_COLORS = ["#8b7cff", "#5aa6ff", "#b67cff", "#6f5de7", "#d493ff", "#7b8cff"];
+
+function CategoryIconPicker({
+  selectedIcon,
+  onChange,
+  error,
+}: {
+  selectedIcon: string;
+  onChange: (value: (typeof CATEGORY_ICON_OPTIONS)[number]["value"]) => void;
+  error?: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Icone</p>
+      <div className="grid grid-cols-5 gap-2">
+        {CATEGORY_ICON_OPTIONS.map((option) => {
+          const Icon = option.icon;
+          const isActive = selectedIcon === option.value;
+
+          return (
+            <button
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={`flex aspect-square items-center justify-center rounded-xl border transition ${
+                isActive
+                  ? "border-primary bg-primary/15 text-primary"
+                  : "border-white/8 bg-white/5 text-muted-foreground hover:bg-white/10"
+              }`}
+              aria-label={option.label}
+              title={option.label}
+            >
+              <Icon className="size-4" />
+            </button>
+          );
+        })}
+      </div>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
+}
 
 function calculateSummary(transactions: TransactionDTO[]) {
   return transactions.reduce(
@@ -72,7 +119,9 @@ export function DashboardClient({ initialData }: Props) {
   const [categories, setCategories] = useState<CategoryDTO[]>(initialData.categories);
   const [isLoading, setIsLoading] = useState(false);
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<CategoryDTO | null>(null);
 
   const summary = useMemo(() => calculateSummary(transactions), [transactions]);
 
@@ -112,6 +161,14 @@ export function DashboardClient({ initialData }: Props) {
       type: "expense",
       categoryId: "",
       createdAt: toDateInputValue(),
+    },
+  });
+
+  const editCategoryForm = useForm<CategoryFormInput>({
+    resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      icon: DEFAULT_CATEGORY_ICON,
     },
   });
 
@@ -165,6 +222,31 @@ export function DashboardClient({ initialData }: Props) {
     }
   }
 
+  async function onEditCategorySubmit(values: CategoryFormInput) {
+    if (!editingCategory) {
+      return;
+    }
+
+    try {
+      await http.patch(`/categories/${editingCategory.id}`, values);
+      toast.success("Categoria atualizada");
+      setIsEditCategoryDialogOpen(false);
+      setEditingCategory(null);
+      await refreshData(month);
+    } catch {
+      toast.error("Nao foi possivel atualizar categoria");
+    }
+  }
+
+  function openEditCategoryDialog(category: CategoryDTO) {
+    setEditingCategory(category);
+    editCategoryForm.reset({
+      name: category.name,
+      icon: (category.icon as CategoryFormInput["icon"]) ?? DEFAULT_CATEGORY_ICON,
+    });
+    setIsEditCategoryDialogOpen(true);
+  }
+
   async function onDeleteCategory(id: string) {
     try {
       await http.delete(`/categories/${id}`);
@@ -204,6 +286,7 @@ export function DashboardClient({ initialData }: Props) {
   };
 
   const selectedCategoryIcon = categoryForm.watch("icon");
+  const selectedEditCategoryIcon = editCategoryForm.watch("icon");
   const categoryMap = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
 
   return (
@@ -246,37 +329,36 @@ export function DashboardClient({ initialData }: Props) {
                   {categoryForm.formState.errors.name ? (
                     <p className="text-xs text-destructive">{categoryForm.formState.errors.name.message}</p>
                   ) : null}
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Ícone</p>
-                    <div className="grid grid-cols-5 gap-2">
-                      {CATEGORY_ICON_OPTIONS.map((option) => {
-                        const Icon = option.icon;
-                        const isActive = selectedCategoryIcon === option.value;
-
-                        return (
-                          <button
-                            key={option.value}
-                            type="button"
-                            onClick={() => categoryForm.setValue("icon", option.value, { shouldValidate: true })}
-                            className={`flex aspect-square items-center justify-center rounded-xl border transition ${
-                              isActive
-                                ? "border-primary bg-primary/15 text-primary"
-                                : "border-white/8 bg-white/5 text-muted-foreground hover:bg-white/10"
-                            }`}
-                            aria-label={option.label}
-                            title={option.label}
-                          >
-                            <Icon className="size-4" />
-                          </button>
-                        );
-                      })}
-                    </div>
-                    {categoryForm.formState.errors.icon ? (
-                      <p className="text-xs text-destructive">{categoryForm.formState.errors.icon.message}</p>
-                    ) : null}
-                  </div>
+                  <CategoryIconPicker
+                    selectedIcon={selectedCategoryIcon}
+                    onChange={(value) => categoryForm.setValue("icon", value, { shouldValidate: true })}
+                    error={categoryForm.formState.errors.icon?.message}
+                  />
                   <Button type="submit" disabled={categoryForm.formState.isSubmitting} className="w-full">
                     {categoryForm.formState.isSubmitting ? "Salvando..." : "Salvar categoria"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isEditCategoryDialogOpen} onOpenChange={setIsEditCategoryDialogOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Editar categoria</DialogTitle>
+                  <DialogDescription>Atualize o nome e o icone da categoria.</DialogDescription>
+                </DialogHeader>
+                <form className="space-y-3" onSubmit={editCategoryForm.handleSubmit(onEditCategorySubmit)}>
+                  <Input placeholder="Ex: Alimentação" {...editCategoryForm.register("name")} />
+                  {editCategoryForm.formState.errors.name ? (
+                    <p className="text-xs text-destructive">{editCategoryForm.formState.errors.name.message}</p>
+                  ) : null}
+                  <CategoryIconPicker
+                    selectedIcon={selectedEditCategoryIcon}
+                    onChange={(value) => editCategoryForm.setValue("icon", value, { shouldValidate: true })}
+                    error={editCategoryForm.formState.errors.icon?.message}
+                  />
+                  <Button type="submit" disabled={editCategoryForm.formState.isSubmitting} className="w-full">
+                    {editCategoryForm.formState.isSubmitting ? "Salvando..." : "Salvar alteracoes"}
                   </Button>
                 </form>
               </DialogContent>
@@ -306,24 +388,67 @@ export function DashboardClient({ initialData }: Props) {
                   {transactionForm.formState.errors.amount ? (
                     <p className="text-xs text-destructive">{transactionForm.formState.errors.amount.message}</p>
                   ) : null}
-                  <select
-                    className="h-9 rounded-lg border border-white/10 bg-white/8 px-3 text-sm text-white"
-                    {...transactionForm.register("type")}
-                  >
-                    <option value="income">Entrada</option>
-                    <option value="expense">Saída</option>
-                  </select>
-                  <select
-                    className="h-9 rounded-lg border border-white/10 bg-white/8 px-3 text-sm text-white"
-                    {...transactionForm.register("categoryId")}
-                  >
-                    <option value="">Selecione uma categoria</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                  <Controller
+                    control={transactionForm.control}
+                    name="type"
+                    render={({ field }) => (
+                      <Select value={field.value} onValueChange={(value) => field.onChange(value ?? "expense")}>
+                        <SelectTrigger className="h-9 w-full border-white/10 bg-white/8 text-white">
+                          <SelectValue>
+                            {(value) => (value === "income" ? "Entrada" : "Saida")}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-[#221935] text-white">
+                          <SelectItem value="income">Entrada</SelectItem>
+                          <SelectItem value="expense">Saida</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  <Controller
+                    control={transactionForm.control}
+                    name="categoryId"
+                    render={({ field }) => (
+                      <Select value={field.value || null} onValueChange={(value) => field.onChange(value ?? "")}>
+                        <SelectTrigger className="h-9 w-full border-white/10 bg-white/8 text-white">
+                          <SelectValue>
+                            {(value) => {
+                              if (!value) {
+                                return <span className="text-muted-foreground">Selecione uma categoria</span>;
+                              }
+
+                              const category = categoryMap.get(String(value));
+
+                              if (!category) {
+                                return <span className="text-muted-foreground">Selecione uma categoria</span>;
+                              }
+
+                              const CategoryIcon = getCategoryIcon(category.icon);
+
+                              return (
+                                <span className="flex items-center gap-2 text-white">
+                                  <CategoryIcon className="size-4 text-violet-100/85" />
+                                  <span>{category.name}</span>
+                                </span>
+                              );
+                            }}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="border-white/10 bg-[#221935] text-white">
+                          {categories.map((category) => {
+                            const CategoryIcon = getCategoryIcon(category.icon);
+
+                            return (
+                              <SelectItem key={category.id} value={category.id}>
+                                <CategoryIcon className="size-4 text-violet-100/85" />
+                                <span>{category.name}</span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
                   {transactionForm.formState.errors.categoryId ? (
                     <p className="text-xs text-destructive">{transactionForm.formState.errors.categoryId.message}</p>
                   ) : null}
@@ -492,8 +617,15 @@ export function DashboardClient({ initialData }: Props) {
                           </div>
                           <div className="min-w-0">
                             <p className="truncate text-sm font-medium">{transaction.title}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {transaction.categoryName} ·{" "}
+                            <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              {(() => {
+                                const category = categoryMap.get(transaction.categoryId);
+                                const CategoryIcon = getCategoryIcon(category?.icon ?? DEFAULT_CATEGORY_ICON);
+
+                                return <CategoryIcon className="size-3.5" />;
+                              })()}
+                              <span>{transaction.categoryName}</span>
+                              <span>·</span>
                               {format(parseISO(transaction.createdAt), "dd MMM", { locale: ptBR })}
                             </p>
                           </div>
@@ -616,9 +748,14 @@ export function DashboardClient({ initialData }: Props) {
                           </p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="icon-sm" onClick={() => void onDeleteCategory(category.id)}>
-                        <Trash2 className="size-4 text-muted-foreground" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="icon-sm" onClick={() => openEditCategoryDialog(category)}>
+                          <PencilLine className="size-4 text-muted-foreground" />
+                        </Button>
+                        <Button variant="ghost" size="icon-sm" onClick={() => void onDeleteCategory(category.id)}>
+                          <Trash2 className="size-4 text-muted-foreground" />
+                        </Button>
+                      </div>
                     </div>
                     );
                   })
