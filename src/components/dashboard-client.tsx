@@ -20,7 +20,7 @@ import {
   Legend,
 } from "recharts";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, ListFilter, PencilLine, PlusCircle, Search, Trash2, Wallet, X } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ListFilter, LogOut, PencilLine, PlusCircle, Search, Trash2, Wallet, X } from "lucide-react";
 
 import type { CategoryDTO, DashboardResponse, TransactionDTO } from "@/types/finance";
 import { CATEGORY_ICON_OPTIONS, DEFAULT_CATEGORY_ICON, getCategoryIcon } from "@/lib/category-icons";
@@ -300,6 +300,14 @@ export function DashboardClient({ initialData }: Props) {
     await refreshData(nextMonth);
   }
 
+  async function onLogout() {
+    try {
+      await http.post("/auth/logout");
+    } finally {
+      window.location.href = "/login";
+    }
+  }
+
   const balanceColor = summary.balance >= 0 ? "text-violet-100" : "text-pink-200";
   const balanceRing =
     summary.balance >= 0
@@ -504,6 +512,13 @@ export function DashboardClient({ initialData }: Props) {
                 </form>
               </DialogContent>
             </Dialog>
+            <Button
+              variant="outline"
+              className="hidden border-white/10 bg-white/8 text-white hover:bg-white/12 md:inline-flex"
+              onClick={() => void onLogout()}
+            >
+              <LogOut className="size-4" /> Sair
+            </Button>
           </div>
         </header>
 
