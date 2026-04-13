@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,7 +20,7 @@ import {
   Legend,
 } from "recharts";
 import { toast } from "sonner";
-import { ArrowDownRight, ArrowUpRight, PencilLine, PlusCircle, Trash2, Wallet } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, ListFilter, PencilLine, PlusCircle, Search, Trash2, Wallet, X } from "lucide-react";
 
 import type { CategoryDTO, DashboardResponse, TransactionDTO } from "@/types/finance";
 import { CATEGORY_ICON_OPTIONS, DEFAULT_CATEGORY_ICON, getCategoryIcon } from "@/lib/category-icons";
@@ -57,6 +57,8 @@ type Props = {
 };
 
 const CHART_COLORS = ["#8b7cff", "#5aa6ff", "#b67cff", "#6f5de7", "#d493ff", "#7b8cff"];
+const ALL_TRANSACTION_TYPES = "all";
+const ALL_TRANSACTION_CATEGORIES = "all";
 
 function CategoryIconPicker({
   selectedIcon,
@@ -122,20 +124,46 @@ export function DashboardClient({ initialData }: Props) {
   const [isEditCategoryDialogOpen, setIsEditCategoryDialogOpen] = useState(false);
   const [isTransactionDialogOpen, setIsTransactionDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryDTO | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<typeof ALL_TRANSACTION_TYPES | TransactionDTO["type"]>(ALL_TRANSACTION_TYPES);
+  const [categoryFilter, setCategoryFilter] = useState<string>(ALL_TRANSACTION_CATEGORIES);
+  const [dateFromFilter, setDateFromFilter] = useState("");
+  const [dateToFilter, setDateToFilter] = useState("");
 
-  const summary = useMemo(() => calculateSummary(transactions), [transactions]);
+  const deferredSearchTerm = useDeferredValue(searchTerm);
+
+  const filteredTransactions = useMemo(() => {
+    const normalizedSearch = deferredSearchTerm.trim().toLowerCase();
+
+    return transactions.filter((transaction) => {
+      const transactionDate = transaction.createdAt.slice(0, 10);
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        transaction.title.toLowerCase().includes(normalizedSearch) ||
+        transaction.categoryName.toLowerCase().includes(normalizedSearch);
+      const matchesType = typeFilter === ALL_TRANSACTION_TYPES || transaction.type === typeFilter;
+      const matchesCategory =
+        categoryFilter === ALL_TRANSACTION_CATEGORIES || transaction.categoryId === categoryFilter;
+      const matchesDateFrom = dateFromFilter.length === 0 || transactionDate >= dateFromFilter;
+      const matchesDateTo = dateToFilter.length === 0 || transactionDate <= dateToFilter;
+
+      return matchesSearch && matchesType && matchesCategory && matchesDateFrom && matchesDateTo;
+    });
+  }, [categoryFilter, dateFromFilter, dateToFilter, deferredSearchTerm, transactions, typeFilter]);
+
+  const summary = useMemo(() => calculateSummary(filteredTransactions), [filteredTransactions]);
 
   const expenseByCategoryData = useMemo(() => {
     const map = new Map<string, number>();
 
-    transactions
+    filteredTransactions
       .filter((item) => item.type === "expense")
       .forEach((item) => {
         map.set(item.categoryName, (map.get(item.categoryName) ?? 0) + item.amount);
       });
 
     return Array.from(map.entries()).map(([name, value]) => ({ name, value }));
-  }, [transactions]);
+  }, [filteredTransactions]);
 
   const incomeVsExpenseData = useMemo(
     () => [
@@ -288,6 +316,20 @@ export function DashboardClient({ initialData }: Props) {
   const selectedCategoryIcon = categoryForm.watch("icon");
   const selectedEditCategoryIcon = editCategoryForm.watch("icon");
   const categoryMap = useMemo(() => new Map(categories.map((category) => [category.id, category])), [categories]);
+  const hasActiveFilters =
+    searchTerm.trim().length > 0 ||
+    typeFilter !== ALL_TRANSACTION_TYPES ||
+    categoryFilter !== ALL_TRANSACTION_CATEGORIES ||
+    dateFromFilter.length > 0 ||
+    dateToFilter.length > 0;
+
+  function clearTransactionFilters() {
+    setSearchTerm("");
+    setTypeFilter(ALL_TRANSACTION_TYPES);
+    setCategoryFilter(ALL_TRANSACTION_CATEGORIES);
+    setDateFromFilter("");
+    setDateToFilter("");
+  }
 
   return (
     <div className="min-h-screen bg-background px-3 py-3 pb-24 md:px-6 md:py-8 md:pb-8">
@@ -574,6 +616,122 @@ export function DashboardClient({ initialData }: Props) {
           </Card>
         </section>
 
+        <section className="relative z-10">
+          <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(34,25,53,0.88),rgba(22,17,34,0.94))] shadow-none">
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="rounded-lg bg-white/8 p-2 text-violet-100/85">
+                    <ListFilter className="size-4" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base text-white">Filtros de transações</CardTitle>
+                    <CardDescription className="text-violet-100/55">
+                      Refine por texto, categoria, tipo e intervalo de datas.
+                    </CardDescription>
+                  </div>
+                </div>
+                {hasActiveFilters ? (
+                  <Button
+                    variant="ghost"
+                    className="shrink-0 text-violet-100/75 hover:bg-white/8 hover:text-white"
+                    onClick={clearTransactionFilters}
+                  >
+                    <X className="size-4" /> Limpar
+                  </Button>
+                ) : null}
+              </div>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <div className="xl:col-span-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-violet-100/45" />
+                  <Input
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    placeholder="Buscar por titulo ou categoria"
+                    className="border-white/10 bg-white/8 pl-9 text-white placeholder:text-violet-100/40"
+                  />
+                </div>
+              </div>
+
+              <Select value={typeFilter} onValueChange={(value) => setTypeFilter((value as typeof ALL_TRANSACTION_TYPES | TransactionDTO["type"]) ?? ALL_TRANSACTION_TYPES)}>
+                <SelectTrigger className="h-10 w-full border-white/10 bg-white/8 text-white">
+                  <SelectValue>
+                    {(value) => {
+                      if (!value || value === ALL_TRANSACTION_TYPES) {
+                        return <span className="text-violet-100/55">Todos os tipos</span>;
+                      }
+
+                      return value === "income" ? "Entradas" : "Saidas";
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#221935] text-white">
+                  <SelectItem value={ALL_TRANSACTION_TYPES}>Todos os tipos</SelectItem>
+                  <SelectItem value="income">Entradas</SelectItem>
+                  <SelectItem value="expense">Saidas</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select value={categoryFilter} onValueChange={(value) => setCategoryFilter(value ?? ALL_TRANSACTION_CATEGORIES)}>
+                <SelectTrigger className="h-10 w-full border-white/10 bg-white/8 text-white">
+                  <SelectValue>
+                    {(value) => {
+                      if (!value || value === ALL_TRANSACTION_CATEGORIES) {
+                        return <span className="text-violet-100/55">Todas as categorias</span>;
+                      }
+
+                      const category = categoryMap.get(String(value));
+
+                      if (!category) {
+                        return <span className="text-violet-100/55">Todas as categorias</span>;
+                      }
+
+                      const CategoryIcon = getCategoryIcon(category.icon);
+
+                      return (
+                        <span className="flex items-center gap-2 text-white">
+                          <CategoryIcon className="size-4 text-violet-100/85" />
+                          <span>{category.name}</span>
+                        </span>
+                      );
+                    }}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-[#221935] text-white">
+                  <SelectItem value={ALL_TRANSACTION_CATEGORIES}>Todas as categorias</SelectItem>
+                  {categories.map((category) => {
+                    const CategoryIcon = getCategoryIcon(category.icon);
+
+                    return (
+                      <SelectItem key={category.id} value={category.id}>
+                        <CategoryIcon className="size-4 text-violet-100/85" />
+                        <span>{category.name}</span>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+
+              <div className="grid grid-cols-2 gap-3 xl:col-span-1">
+                <Input
+                  type="date"
+                  value={dateFromFilter}
+                  onChange={(event) => setDateFromFilter(event.target.value)}
+                  className="border-white/10 bg-white/8 text-white"
+                />
+                <Input
+                  type="date"
+                  value={dateToFilter}
+                  onChange={(event) => setDateToFilter(event.target.value)}
+                  className="border-white/10 bg-white/8 text-white"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* ── Transactions + Categories ── */}
         <section className="relative z-10 grid gap-4 lg:grid-cols-[1fr_300px]">
           <Card className="border-white/8 bg-[linear-gradient(180deg,rgba(24,18,37,0.92),rgba(18,14,28,0.94))] shadow-none">
@@ -588,13 +746,15 @@ export function DashboardClient({ initialData }: Props) {
                   <Skeleton className="h-14 w-full" />
                   <Skeleton className="h-14 w-full" />
                 </div>
-              ) : transactions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Nenhuma transação encontrada para este mês.</p>
+              ) : filteredTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma transação encontrada com os filtros atuais.
+                </p>
               ) : (
                 <>
                   {/* Mobile: card list */}
                   <div className="space-y-2 md:hidden">
-                    {transactions.map((transaction) => (
+                    {filteredTransactions.map((transaction) => (
                       <div
                         key={transaction.id}
                         className={`flex items-center justify-between rounded-xl border border-white/6 p-3 ${
@@ -660,7 +820,7 @@ export function DashboardClient({ initialData }: Props) {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {transactions.map((transaction) => {
+                        {filteredTransactions.map((transaction) => {
                           const category = categoryMap.get(transaction.categoryId);
                           const CategoryIcon = getCategoryIcon(category?.icon ?? DEFAULT_CATEGORY_ICON);
 
